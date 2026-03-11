@@ -34,10 +34,10 @@
     --anim: 220ms cubic-bezier(.2, .8, .2, 1);
     --theme-anim: 700ms cubic-bezier(.22, .61, .36, 1);
 }
-
+    
 html.theme-transition,
 html.theme-transition * {
-    transition: background-color var(--theme-anim);
+    transition: background-color var(--theme-anim), background var(--theme-anim);
 }
 
 @media (prefers-color-scheme:dark) {

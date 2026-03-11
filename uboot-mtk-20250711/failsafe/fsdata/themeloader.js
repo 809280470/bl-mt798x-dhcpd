@@ -50,6 +50,135 @@
 		return "#" + r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b2.toString(16).padStart(2, "0");
 	}
 
+	function setupThemeTransition(root) {
+		var timer = null;
+		var ready = false;
+		var lastThemeAttr = root.getAttribute("data-theme");
+		var durationMs = 700;
+
+		function pulse() {
+			if (!ready) return;
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+			root.classList.add("theme-transition");
+			timer = setTimeout(function () {
+				root.classList.remove("theme-transition");
+				timer = null;
+			}, durationMs);
+		}
+
+		root.__failsafeThemePulse = pulse;
+
+		try {
+			var obs = new MutationObserver(function () {
+				var now = root.getAttribute("data-theme");
+				if (now !== lastThemeAttr) {
+					lastThemeAttr = now;
+					if (root.__failsafeThemeSilent) return;
+					pulse();
+				}
+			});
+			obs.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+		} catch (e) { }
+
+		try {
+			var mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+			if (mq && mq.addEventListener) {
+				mq.addEventListener("change", function () {
+					var cur = root.getAttribute("data-theme");
+					if (!cur || cur === "auto") pulse();
+				});
+			} else if (mq && mq.addListener) {
+				mq.addListener(function () {
+					var cur2 = root.getAttribute("data-theme");
+					if (!cur2 || cur2 === "auto") pulse();
+				});
+			}
+		} catch (e2) { }
+
+		setTimeout(function () {
+			ready = true;
+		}, 0);
+	}
+
+	function getPreferredScheme() {
+		try {
+			var mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+			return mq && mq.matches ? "dark" : "light";
+		} catch (e) {
+			return "light";
+		}
+	}
+
+	function applyThemeMode(root, mode, opts) {
+		var norm = normalizeThemeMode(mode) || "auto";
+		var silent = opts && opts.silent;
+		if (!root) return;
+		var applyAttr = function (value, isAuto) {
+			if (silent) root.__failsafeThemeSilent = true;
+			if (isAuto) {
+				root.setAttribute("data-theme-auto", "1");
+				root.setAttribute("data-theme", value);
+			} else {
+				root.removeAttribute("data-theme-auto");
+				root.setAttribute("data-theme", value);
+			}
+			if (silent) root.__failsafeThemeSilent = false;
+		};
+
+		var scheduleApply = function (value, isAuto, shouldPulse) {
+			if (shouldPulse && root.__failsafeThemePulse)
+				root.__failsafeThemePulse();
+			if (silent) {
+				applyAttr(value, isAuto);
+				return;
+			}
+			if (window.requestAnimationFrame) {
+				requestAnimationFrame(function () {
+					requestAnimationFrame(function () {
+						applyAttr(value, isAuto);
+					});
+				});
+			} else {
+				setTimeout(function () {
+					applyAttr(value, isAuto);
+				}, 0);
+			}
+		};
+		if (!applyThemeMode._mq) {
+			applyThemeMode._mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+		}
+		if (!applyThemeMode._onChange) {
+			applyThemeMode._onChange = function () {
+				if (applyThemeMode._mode !== "auto") return;
+				var next = getPreferredScheme();
+				scheduleApply(next, true, true);
+			};
+		}
+
+		if (applyThemeMode._mq) {
+			try {
+				if (applyThemeMode._mq.addEventListener) {
+					applyThemeMode._mq.removeEventListener("change", applyThemeMode._onChange);
+					applyThemeMode._mq.addEventListener("change", applyThemeMode._onChange);
+				} else if (applyThemeMode._mq.removeListener) {
+					applyThemeMode._mq.removeListener(applyThemeMode._onChange);
+					applyThemeMode._mq.addListener(applyThemeMode._onChange);
+				}
+			} catch (e2) { }
+		}
+
+		applyThemeMode._mode = norm;
+		if (norm === "auto") {
+			var cur = getPreferredScheme();
+			scheduleApply(cur, true, !silent);
+		} else {
+			scheduleApply(norm, false, !silent);
+		}
+	}
+
 	try {
 		var cached = localStorage.getItem("failsafe_theme_color_cache");
 		var cachedTheme = localStorage.getItem("theme");
@@ -60,10 +189,11 @@
 		var lighter;
 		var meta;
 		root = document.documentElement;
-		if (themeMode && themeMode !== "auto")
-			root.setAttribute("data-theme", themeMode);
-		else
-			root.removeAttribute("data-theme");
+		setupThemeTransition(root);
+		applyThemeMode(root, themeMode || "auto", { silent: true });
+		window.__failsafeThemeApplyMode = function (mode, opts) {
+			applyThemeMode(root, mode, opts);
+		};
 		if (!norm) return;
 		rgb = hexToRgb(norm);
 		if (!rgb) return;

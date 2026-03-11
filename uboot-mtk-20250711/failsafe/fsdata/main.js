@@ -30,14 +30,14 @@ function detectTheme() {
     return "auto"
 }
 
-function isI18nAvailable() {
-    return typeof I18N !== "undefined" && I18N
-}
-
 function normalizeThemeMode(n) {
     if (!n) return "auto";
     var t = String(n).toLowerCase().trim();
     return t === "light" || t === "dark" || t === "auto" ? t : "auto";
+}
+
+function isI18nAvailable() {
+    return typeof I18N !== "undefined" && I18N
 }
 
 function isI18nEnabled() {
@@ -110,12 +110,17 @@ function setTheme(n, opts) {
     var o = opts || {};
     var persistLocal = o.persistLocal !== false;
     var persistEnv = o.persistEnv === true;
+    var silent = o.silent === true;
     APP_STATE.theme = normalizeThemeMode(n || "auto");
     try {
         persistLocal && localStorage.setItem("theme", APP_STATE.theme)
     } catch (i) { }
     var t = document.documentElement;
-    APP_STATE.theme === "auto" ? t.removeAttribute("data-theme") : t.setAttribute("data-theme", APP_STATE.theme);
+    if (window.__failsafeThemeApplyMode) {
+        window.__failsafeThemeApplyMode(APP_STATE.theme, { silent: silent });
+    } else {
+        APP_STATE.theme === "auto" ? t.removeAttribute("data-theme") : t.setAttribute("data-theme", APP_STATE.theme);
+    }
     updateThemeSelect();
     persistEnv && saveThemeMode(APP_STATE.theme);
 }
@@ -288,7 +293,7 @@ async function loadThemeMode() {
     } catch (e) { }
 
     if (mode) {
-        setTheme(mode, { persistEnv: false, persistLocal: true });
+        setTheme(mode, { persistEnv: false, persistLocal: true, silent: true });
     }
 }
 
@@ -736,7 +741,7 @@ function appInit(n) {
     APP_STATE.i18nEnabled = isI18nAvailable();
     APP_STATE.lang = detectLang();
     APP_STATE.theme = detectTheme();
-    setTheme(APP_STATE.theme, { persistEnv: false, persistLocal: true });
+    setTheme(APP_STATE.theme, { persistEnv: false, persistLocal: true, silent: true });
     setLang(APP_STATE.lang);
     ensureSidebar();
     ensureBranding();
