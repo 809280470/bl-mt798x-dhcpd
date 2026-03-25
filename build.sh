@@ -31,8 +31,12 @@ elif [ "$VERSION" = "SP1" ] || [ "$VERSION" = "sp1" ]; then
 	VERSION="SP1"
     UBOOT_DIR=uboot-mtk-20250711
     ATF_DIR=atf-20240117-bacca82a8
+elif [ "$VERSION" = "SP2" ] || [ "$VERSION" = "sp2" ]; then
+	VERSION="SP2"
+    UBOOT_DIR=uboot-mtk-20250711
+    ATF_DIR=atf-20260123
 else
-    echo "Error: Unsupported VERSION. Please specify VERSION=2022/2023/2024/2025."
+    echo "Error: Unsupported VERSION. Please specify VERSION=2025/SP1/SP2."
     exit 1
 fi
 

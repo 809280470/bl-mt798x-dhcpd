@@ -42,8 +42,6 @@ You can configure the features you need.
   - [x] WEBUI_FAILSAFE_CONSOLE - Enable web terminal
   - [x] WEBUI_FAILSAFE_FLASH - Enable flash editor
 
-> Enable WEBUI_FAILSAFE_UI_OLD will use the traditional webui interface.
-
 ## Prepare
 
 ```bash
@@ -57,11 +55,13 @@ example:
 ```bash
 chmod +x build.sh
 # mt7981, emmc device
-BOARD=sn_r1 VERSION=2025 ./build.sh
+BOARD=sn_r1 ./build.sh
+# mt7981, spi-nand device, nonmbm device
+BOARD=zbt_z8103ax-c VARIANT=NONMBM ./build.sh
 # mt7981, spi-nand device, multi-layout device
-BOARD=cmcc_a10 VERSION=2025 MULTI_LAYOUT=1 ./build.sh
+BOARD=cmcc_a10 VERSION=SP2 MULTI_LAYOUT=1 ./build.sh
 # mt7986, spi-nand device, multi-layout device, single image upgrade support
-BOARD=ruijie_rg-x60-new MULTI_LAYOUT=1 SIMG=1 ./build.sh
+BOARD=ruijie_rg-x60-new VERSION=SP1 MULTI_LAYOUT=1 SIMG=1 ./build.sh
 ```
 
 - Version (default: 2025. Optional, for different versions of ATF and U-Boot)
@@ -70,8 +70,11 @@ BOARD=ruijie_rg-x60-new MULTI_LAYOUT=1 SIMG=1 ./build.sh
 | --- | --- | --- |
 | 2025 | 20250711 | 20250711 |
 | SP1 | 20241017-bacca82a8 | 20250711 |
+| SP2 | 20260123 | 20250711 |
 
-> SP1 is a special version based on u-boot 2025.07. For some mt7986 devices, still use the kernel 5.4 firmware, may cause some issues on version 2025, like hwrng worong, in this case, you can try SP1.
+> SP1: For some mt7986 devices, still use the kernel 5.4 firmware, may cause some issues on version 2025, like hwrng worong, in this case, you can try SP1.
+>
+> SP2: With some modifications for better compatibility with new platforms, like mt7987.
 
 - VARIANT (default: default. Optional, for different firmware variants)
 
@@ -81,8 +84,6 @@ BOARD=ruijie_rg-x60-new MULTI_LAYOUT=1 SIMG=1 ./build.sh
 | nonmbm | Recommand for devices with stock/custom partition layout, with MTK-NMBM disabled | stock/custom layout firmware without MTK-NMBM |
 | ubootmod | With some modifications for better compatibility with OpenWrt/ImmortalWrt firmware | ubi/ubootmod layout firmware |
 | openwrt | From OpenWrt official respository, it has no failsafe web UI temporarily | OpenWrt official firmware |
-
-> **VARIANT is only work for VERSION 2025/SP1, for other versions, it will be ignored and use default variant.**
 
 ---
 
