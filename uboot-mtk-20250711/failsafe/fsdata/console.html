@@ -25,6 +25,10 @@
 				</div>
 				<div class="card-main">
 					<div class="console-card">
+						<div class="env-toolbar">
+							<a id="console_status" class="console-status"></a>
+						</div>
+
 						<div id="console_out" class="console-output" aria-label="console output"></div>
 
 						<div class="console-toolbar">
@@ -41,8 +45,6 @@
 								placeholder="help; printenv; mtd list" aria-label="command">
 							<button type="button" class="button" onclick="consoleSend()" data-i18n="console.send">Send</button>
 						</div>
-
-						<div id="console_status" class="console-status"></div>
 					</div>
 				</div>
 				<div class="card-foot">
