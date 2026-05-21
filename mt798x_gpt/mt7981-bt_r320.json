@@ -1,8 +1,4 @@
 {
-	"gpt": {
-		"start": 0,
-		"end": 33
-	},
 	"u-boot-env": {
 		"start": 8192,
 		"end": 9215
