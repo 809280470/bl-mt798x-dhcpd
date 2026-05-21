@@ -14,7 +14,12 @@
 #include <net.h>
 #include <net/mtk_tcp.h>
 #include <net/mtk_httpd.h>
+#ifdef CONFIG_MTK_DHCPD
 #include <net/mtk_dhcpd.h>
+#endif
+#ifdef CONFIG_MTK_TELNETD
+#include <net/mtk_telnetd.h>
+#endif
 #include <u-boot/md5.h>
 #include <linux/stringify.h>
 #include <linux/string.h>
@@ -45,9 +50,10 @@ static failsafe_fw_t fw_type;
 static bool failsafe_httpd_running;
 
 #ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
-static const char *mtd_layout_label;
-const char *get_mtd_layout_label(void);
 #define MTD_LAYOUTS_MAXLEN	128
+static char mtd_layout_label[MTD_LAYOUTS_MAXLEN];
+static bool mtd_layout_save_pending;
+const char *get_mtd_layout_label(void);
 #endif
 
 int __weak failsafe_validate_image(const void *data, size_t size, failsafe_fw_t fw)
@@ -60,9 +66,27 @@ int __weak failsafe_write_image(const void *data, size_t size, failsafe_fw_t fw)
 	return -ENOSYS;
 }
 
+static bool services_auto_started;
+
 void schedule_hook(void)
 {
-	if (!failsafe_httpd_running)
+	bool need_poll = failsafe_httpd_running;
+
+#ifdef CONFIG_MTK_DHCPD
+	need_poll = need_poll || mtk_dhcpd_is_running();
+#endif
+
+	if (!services_auto_started && !failsafe_httpd_running) {
+		services_auto_started = true;
+#ifdef CONFIG_MTK_DHCPD
+		if (!mtk_dhcpd_is_running()) {
+			printf("Starting DHCP server...\n");
+			mtk_dhcpd_start();
+			need_poll = true;
+		}
+#endif
+	}
+	if (!need_poll)
 		return;
 
 #if defined(CONFIG_MTK_TCP)
@@ -152,6 +176,73 @@ static bool failsafe_auto_reboot_enabled(void)
 
 	return false;
 }
+
+#ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
+static void failsafe_prepare_mtd_layout(void)
+{
+	const char *cur_layout, *env_layout;
+
+	if (!mtd_layout_label[0])
+		return;
+
+	cur_layout = get_mtd_layout_label();
+	env_layout = env_get("mtd_layout");
+
+	if (!cur_layout || strcmp(cur_layout, mtd_layout_label) ||
+	    !env_layout || strcmp(env_layout, mtd_layout_label)) {
+		printf("httpd: switching mtd layout: %s\n", mtd_layout_label);
+		env_set("mtd_layout", mtd_layout_label);
+		env_set("mtd_layout_label", mtd_layout_label);
+	}
+
+	env_set("mtdids", NULL);
+	env_set("mtdparts", NULL);
+}
+
+static void failsafe_save_mtd_layout(void)
+{
+	const char *env_layout, *legacy_layout;
+	bool need_save = false;
+
+	if (!mtd_layout_save_pending)
+		return;
+
+	env_layout = env_get("mtd_layout");
+	legacy_layout = env_get("mtd_layout_label");
+
+	if (!env_layout || strcmp(env_layout, mtd_layout_label)) {
+		env_set("mtd_layout", mtd_layout_label);
+		need_save = true;
+	}
+
+	if (!legacy_layout || strcmp(legacy_layout, mtd_layout_label)) {
+		env_set("mtd_layout_label", mtd_layout_label);
+		need_save = true;
+	}
+
+	if (env_get("mtdids")) {
+		env_set("mtdids", NULL);
+		need_save = true;
+	}
+
+	if (env_get("mtdparts")) {
+		env_set("mtdparts", NULL);
+		need_save = true;
+	}
+
+	if (!need_save) {
+		mtd_layout_save_pending = false;
+		return;
+	}
+
+	if (!env_save())
+		printf("httpd: saved mtd layout: %s\n", mtd_layout_label);
+	else
+		printf("Warning: failed to save mtd layout env\n");
+
+	mtd_layout_save_pending = false;
+}
+#endif
 
 static int output_plain_file(struct httpd_response *response,
 			     const char *filename)
@@ -621,6 +712,10 @@ done:
 	upload_data_id = upload_id;
 	upload_data = fw->data;
 	upload_size = fw->size;
+#ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
+	mtd_layout_label[0] = '\0';
+	mtd_layout_save_pending = false;
+#endif
 
 	md5_wd((u8 *)fw->data, fw->size, md5_sum, 0);
 	for (i = 0; i < 16; i++) {
@@ -632,13 +727,15 @@ done:
 
 #ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
 	if (mtd) {
-		mtd_layout_label = mtd->data;
-		sprintf(resp, "%ld %s %s", fw->size, md5_str, mtd->data);
+		snprintf(mtd_layout_label, sizeof(mtd_layout_label),
+			 "%s", mtd->data);
+		snprintf(resp, sizeof(resp), "%ld %s %s", fw->size, md5_str,
+			 mtd_layout_label);
 	} else {
-		sprintf(resp, "%ld %s", fw->size, md5_str);
+		snprintf(resp, sizeof(resp), "%ld %s", fw->size, md5_str);
 	}
 #else
-	sprintf(resp, "%ld %s", fw->size, md5_str);
+	snprintf(resp, sizeof(resp), "%ld %s", fw->size, md5_str);
 #endif
 
 	response->data = resp;
@@ -699,26 +796,18 @@ static void result_handler(enum httpd_uri_handler_status status,
 
 		if (upload_data_id == upload_id) {
 #ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
-			if (mtd_layout_label) {
-				const char *cur_layout = get_mtd_layout_label();
-				const char *env_layout = env_get("mtd_layout");
-
-				if (!cur_layout || strcmp(cur_layout, mtd_layout_label) ||
-				    !env_layout || strcmp(env_layout, mtd_layout_label)) {
-					printf("httpd: saving mtd layout: %s\n", mtd_layout_label);
-					env_set("mtd_layout", mtd_layout_label);
-					env_set("mtd_layout_label", mtd_layout_label);
-					env_set("mtdids", NULL);
-					env_set("mtdparts", NULL);
-					env_save();
-				}
-			}
+			failsafe_prepare_mtd_layout();
+			mtd_layout_save_pending = mtd_layout_label[0] != '\0';
 #endif
 			if (fw_type == FW_TYPE_INITRD)
 				st->ret = 0;
 			else
 				st->ret = failsafe_write_image(upload_data,
 							       upload_size, fw_type);
+#ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
+			if (st->ret)
+				mtd_layout_save_pending = false;
+#endif
 		}
 
 		/* invalidate upload identifier */
@@ -742,6 +831,11 @@ static void result_handler(enum httpd_uri_handler_status status,
 		upgrade_success = !st->ret;
 		auto_action_pending = upgrade_success &&
 			(fw_type == FW_TYPE_INITRD || failsafe_auto_reboot_enabled());
+
+#ifdef CONFIG_MEDIATEK_MULTI_MTD_LAYOUT
+		if (upgrade_success)
+			failsafe_save_mtd_layout();
+#endif
 
 		free(response->session_data);
 
@@ -925,15 +1019,33 @@ int start_web_failsafe(void)
 	httpd_register_uri_handler(inst, "/console/clear", &webconsole_clear_handler, NULL);
 #endif
 
-	if (IS_ENABLED(CONFIG_MTK_DHCPD))
-		mtk_dhcpd_start();
+	if (IS_ENABLED(CONFIG_MTK_TELNETD)) {
+		const char *enable_str = env_get("telnet_enable");
+		const char *port_str = env_get("telnet_port");
+		unsigned long port = 23;
+		bool enable = true;
+
+		/* Check if telnet is explicitly disabled */
+		if (enable_str) {
+			if (!strcmp(enable_str, "0") || !strcasecmp(enable_str, "false") ||
+			    !strcasecmp(enable_str, "no") || !strcasecmp(enable_str, "off")) {
+				enable = false;
+			}
+		}
+
+		if (enable) {
+			if (port_str) {
+				port = simple_strtoul(port_str, NULL, 10);
+				if (port < 1 || port > 65535)
+					port = 23;
+			}
+			mtk_telnetd_start((u16)port);
+		}
+	}
 
 	failsafe_httpd_running = true;
 	net_loop(MTK_TCP);
 	failsafe_httpd_running = false;
-
-	if (IS_ENABLED(CONFIG_MTK_DHCPD))
-		mtk_dhcpd_stop();
 
 	return 0;
 }

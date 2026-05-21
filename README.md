@@ -213,7 +213,7 @@ ARMPLL frequency range adjustment support for different platforms:
 
 | Version | mt7622 | mt7629 | mt7981 | mt7986 | mt7987 | mt7988 |
 | --- | --- | --- | --- | --- | --- | --- |
-| TF-A 2024 | No | No | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | No | No |
+| TF-A 2024 | No | No | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | N/A | No |
 | TF-A 2025 | 1.35GHz~1.7GHz | 1.2GHz~1.5GHz | 1.3GHz~1.8GHz | 1.6GHz~2.5GHz | No | No |
 | TF-A 2026 | No | No | No | No | No | No |
 
@@ -273,6 +273,8 @@ HOW to flash:
 
 ### Change failsafe WEB UI start key
 
+Default set `glbtn_key=reset,wps,mesh`, it means the glbtn command will search for GPIOs with labels "reset", "wps" and "mesh" in order, and use the first one found as the failsafe WEB UI start key.
+
 The following priorities are now supported:
 
 - `glbtn_gpio=<gpio>`
@@ -323,6 +325,12 @@ fw_setenv failsafe 1 # Reboot to failsafe mode in next boot
 ```
 
 > need install `uboot-envtools` and configure `package/boot/uboot-envtools/files/mediatek_filogic` correctly for your device before compile firmware, otherwise the environment variables will not work.
+
+### Telnet support
+
+You can connect to the device with telnet, default port is 23, and you can set the `telnet_port` environment variable to change the port.
+
+TelnetD is enabled by default, but you can set the `telnetd_enable` environment variable to 0/false/no/off to disable it.
 
 ---
 
