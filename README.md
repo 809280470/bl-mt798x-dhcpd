@@ -123,7 +123,7 @@ make boards VERSION=2025
 | --- | --- | --- |
 | default | Recommand for devices with stock/custom partition layout, enable MTK-NMBM, suitable for most users | stock/custom layout firmware |
 | nonmbm | Recommand for devices with stock/custom partition layout, with MTK-NMBM disabled | stock/custom layout firmware without MTK-NMBM |
-| ubootmod | With some modifications for better compatibility with OpenWrt/ImmortalWrt firmware | ubi/ubootmod layout firmware |
+| ubootmod | With some modifications for better compatibility with OpenWrt/ImmortalWrt firmware | ubootmod layout firmware |
 | ubi | Designed for UBI layout(such as: `spi-nand0:1024k(bl2),-(ubi)`) | ubi layout firmware |
 | openwrt | From OpenWrt official respository, it has no failsafe web UI temporarily | OpenWrt official firmware |
 
@@ -303,7 +303,7 @@ HOW to flash:
 
 ## The best practices
 
-1. Use TTL tools to connect to the serial port, and use [MTK UARTBOOT](https://github.com/981213/mtk_uartboot/releases) to ramboot
+1. Use TTL tools to connect to the serial port, and use [MTK UARTBOOT](https://github.com/981213/mtk_uartboot/releases)/[MTK-LAUNCHPAD](https://github.com/Yuzhii0718/mtk-launchpad) to ramboot
 
 2. In Web UI, backup all your flash and partitions[1*](#endnote), is very important!
 
