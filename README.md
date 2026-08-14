@@ -4,9 +4,13 @@ A modified version of hanwckf's U-Boot for MT798x by Yuzhii, with support for DH
 
 Supports GitHub Actions for automatic builds, and can generate both normal and overclocked BL2.
 
-**Warning: Flashing custom bootloaders can brick your device. Proceed with caution and at your own risk.**
+> [!CAUTION]
+> **Warning: Flashing custom bootloaders can brick your device. Proceed with caution and at your own risk.**
 
 ## About bl-mt798x
+
+> [!NOTE]
+> How to use it? Click [**here**](#the-best-practices) for usage instructions.
 
 U-Boot 2025 adds more features:
 
