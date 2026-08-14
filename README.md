@@ -311,6 +311,10 @@ How to flash:
 
 4. Restore the backup if something goes wrong
 
+### Enter failsafe by uBootEnter
+
+We can enter failsafe mode by network without physical operation, more details can be found in the [uBootEnter](https://github.com/chenxin527/uBootEnter) project.
+
 ### Change failsafe WEB UI start key
 
 Default set `glbtn_key=reset,wps,mesh`, it means the glbtn command will search for GPIOs with labels "reset", "wps" and "mesh" in order, and use the first one found as the failsafe WEB UI start key.
