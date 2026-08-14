@@ -2,14 +2,14 @@
 /*
  * Copyright (C) 2026 Yuzhii0718
  *
- * Network boot abort support (uBootEnter.py compatible)
+ * Network boot abort support (uBootEnter.py / BreedEnter compatible)
  *
  * Let a host tool abort the boot countdown over the network and force
  * U-Boot into its web failsafe.
  *
  *   - UDP listener on port 37541
- *   - magic trigger payload "UBOOT:ABORT" (11 bytes)
- *   - broadcast reply "UBOOT:ABORTED" (13 bytes), src/dst port 37540
+ *   - magic trigger payload "UBOOT:ABORT" or "BREED:ABORT" (11 bytes)
+ *   - broadcast reply "<PROTO>:ABORTED" (13 bytes), src/dst port 37540
  *   - enter the blocking web failsafe (httpd) afterwards
  *
  * Disable at runtime:  setenv disable_net_abort 1
@@ -28,15 +28,18 @@
 
 #define NET_ABORT_PORT		37541	/* listener port for magic packet */
 #define NET_ABORTED_PORT	37540	/* reply port (src and dst) */
-#define NET_ABORT_MAGIC		"UBOOT:ABORT"
+#define NET_ABORT_MAGIC_UBOOT	"UBOOT:ABORT"
+#define NET_ABORT_MAGIC_BREED	"BREED:ABORT"
 #define NET_ABORT_MAGIC_LEN	11
-#define NET_ABORTED_REPLY	"UBOOT:ABORTED"
+#define NET_ABORTED_REPLY_UBOOT	"UBOOT:ABORTED"
+#define NET_ABORTED_REPLY_BREED	"BREED:ABORTED"
 #define NET_ABORTED_REPLY_LEN	13
 #define NET_ABORT_WAIT_SEC	3	/* link settle + listen window */
 
 static rxhand_f *net_abort_prev_udp_handler;
 static bool net_abort_enabled;
 static bool net_abort_pkt_received;
+static bool net_abort_breed_trigger;
 
 static struct in_addr net_abort_str_to_ip(const char *str, const char *def)
 {
@@ -55,8 +58,13 @@ static void net_abort_udp_handler(uchar *pkt, unsigned int dport,
 	if (dport == NET_ABORT_PORT) {
 		printf("netabort: UDP pkt sport %u len %u\n", sport, len);
 		if (len == NET_ABORT_MAGIC_LEN &&
-		    !memcmp(pkt, NET_ABORT_MAGIC, NET_ABORT_MAGIC_LEN))
+		    (!memcmp(pkt, NET_ABORT_MAGIC_UBOOT, NET_ABORT_MAGIC_LEN) ||
+		     !memcmp(pkt, NET_ABORT_MAGIC_BREED, NET_ABORT_MAGIC_LEN))) {
+			net_abort_breed_trigger =
+				!memcmp(pkt, NET_ABORT_MAGIC_BREED,
+					NET_ABORT_MAGIC_LEN);
 			net_abort_pkt_received = true;
+		}
 	}
 
 	/* Chain: keep previously installed UDP services working */
@@ -75,6 +83,7 @@ void net_abort_prepare(void)
 
 	net_abort_enabled = false;
 	net_abort_pkt_received = false;
+	net_abort_breed_trigger = false;
 
 	/* The web failsafe / httpd uses net_ip & net_netmask */
 	net_ip = net_abort_str_to_ip(env_get("ipaddr"), CONFIG_IPADDR);
@@ -157,11 +166,15 @@ void net_abort_finish(void)
 	net_abort_enabled = false;
 
 	if (net_abort_pkt_received) {
-		printf("netabort: triggered, entering web failsafe\n");
+		const char *reply = net_abort_breed_trigger ?
+			NET_ABORTED_REPLY_BREED : NET_ABORTED_REPLY_UBOOT;
 
-		/* Reply "UBOOT:ABORTED" to broadcast:37540 from :37540 */
+		printf("netabort: triggered (%s), entering web failsafe\n",
+		       net_abort_breed_trigger ? "BREED" : "UBOOT");
+
+		/* Reply "<PROTO>:ABORTED" to broadcast:37540 from :37540 */
 		memcpy(net_tx_packet + net_eth_hdr_size() + IP_UDP_HDR_SIZE,
-		       NET_ABORTED_REPLY, NET_ABORTED_REPLY_LEN);
+		       reply, NET_ABORTED_REPLY_LEN);
 		net_send_udp_packet((uchar *)net_bcast_ethaddr,
 				    string_to_ip("255.255.255.255"),
 				    NET_ABORTED_PORT, NET_ABORTED_PORT,
@@ -187,8 +200,11 @@ static int do_netabort(struct cmd_tbl *cmdtp, int flag, int argc,
 		printf("netabort: %s (UDP port %d)\n",
 		       net_abort_enabled ? "enabled" : "disabled",
 		       NET_ABORT_PORT);
-		printf("netabort: trigger %sreceived\n",
-		       net_abort_pkt_received ? "" : "not ");
+		if (net_abort_pkt_received)
+			printf("netabort: trigger received (%s)\n",
+			       net_abort_breed_trigger ? "BREED" : "UBOOT");
+		else
+			puts("netabort: trigger not received\n");
 		return CMD_RET_SUCCESS;
 	}
 
@@ -229,15 +245,16 @@ static int do_netabort(struct cmd_tbl *cmdtp, int flag, int argc,
 }
 
 U_BOOT_LONGHELP(netabort,
-	"listen [secs] - listen for the UBOOT:ABORT magic packet\n"
-	"\t(UDP broadcast port 37541, sent by uBootEnter.py) and enter\n"
-	"\tthe blocking web failsafe (httpd) once it is received.\n"
+	"listen [secs] - listen for the UBOOT:ABORT / BREED:ABORT magic\n"
+	"\tpackets (UDP broadcast port 37541, sent by uBootEnter.py or\n"
+	"\tBreedEnter) and enter the blocking web failsafe (httpd) once\n"
+	"\tone is received. The matching <PROTO>:ABORTED reply is sent.\n"
 	"\tsecs sets the link settle + listen window (default 3).\n"
 	"netabort status - show abort detection state\n"
 );
 
 U_BOOT_CMD(
 	netabort,	CONFIG_SYS_MAXARGS,	1,	do_netabort,
-	"network boot abort (uBootEnter.py compatible)",
+	"network boot abort (uBootEnter.py / BreedEnter compatible)",
 	netabort_help_text
 );

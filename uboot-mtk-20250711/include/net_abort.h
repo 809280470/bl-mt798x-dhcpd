@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * Network boot abort support (uBootEnter.py compatible)
+ * Copyright (C) 2026 Yuzhii0718
  *
- * Listens for the "UBOOT:ABORT" magic packet (UDP port 37541) while the boot
- * countdown is running.  Once detected, the web failsafe (httpd) is entered
- * so that the uBootEnter.py tool can recover the device over HTTP without
- * console access.
+ * Network boot abort support (uBootEnter.py / BreedEnter compatible)
+ *
+ * Listens for the "UBOOT:ABORT" / "BREED:ABORT" magic packets (UDP port
+ * 37541) while the boot countdown is running.  Once detected, the web
+ * failsafe (httpd) is entered so that the host tool can recover the device
+ * over HTTP without console access.  The matching "<PROTO>:ABORTED" reply
+ * is broadcast on port 37540.
  */
 
 #ifndef __NET_ABORT_H
