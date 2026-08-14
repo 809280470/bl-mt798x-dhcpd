@@ -311,9 +311,9 @@ How to flash:
 
 4. Restore the backup if something goes wrong
 
-### Enter failsafe by uBootEnter
+### Enter failsafe by uBootEnter/BreedEnter
 
-We can enter failsafe mode by network without physical operation, more details can be found in the [uBootEnter](https://github.com/chenxin527/uBootEnter) project.
+We can enter failsafe mode by network without physical operation, more details can be found in the [uBootEnter](https://github.com/chenxin527/uBootEnter) and [BreedEnter](https://breed.hackpascal.net/) projects.
 
 ### Change failsafe WEB UI start key
 
