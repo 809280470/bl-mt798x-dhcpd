@@ -10,6 +10,7 @@ config WEBUI_FAILSAFE
 	select MTK_HTTPD
 	select MTK_DHCPD
 	select MTK_DNSD
+	select MTK_NET_ABORT
 	default n
 	help
 	  Enable Web based failsafe UI
