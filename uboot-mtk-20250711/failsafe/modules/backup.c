@@ -38,10 +38,10 @@ DECLARE_GLOBAL_DATA_PTR;
 #include <part.h>
 #endif
 
-#include "../failsafe_internal.h"
+#include <failsafe/internal.h>
 
 #ifdef CONFIG_WEBUI_FAILSAFE_NAND_RAW
-#include "nand_raw.h"
+#include <failsafe/nand_raw.h>
 #endif
 
 enum backup_phase {

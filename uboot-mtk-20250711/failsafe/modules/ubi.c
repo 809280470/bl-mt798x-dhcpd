@@ -31,7 +31,7 @@
 #include <ubifs_uboot.h>
 #endif
 
-#include "../failsafe_internal.h"
+#include <failsafe/internal.h>
 
 /* Max buffer size for JSON response */
 #define UBI_JSON_BUF_SZ		16384

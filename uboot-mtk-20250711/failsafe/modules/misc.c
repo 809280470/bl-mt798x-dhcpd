@@ -36,8 +36,8 @@ extern const char *mtd_layout_spi_nand_replace(const char *str, char *buf,
 					       size_t bufsz);
 #endif
 
-#include "../fs.h"
-#include "../failsafe_internal.h"
+#include <failsafe/fs.h>
+#include <failsafe/internal.h>
 
 /* ------------------------------------------------------------------ */
 /*  Version handler                                                    */

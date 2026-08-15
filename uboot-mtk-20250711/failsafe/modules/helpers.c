@@ -32,8 +32,8 @@
 #include <part.h>
 #endif
 
-#include "../fs.h"
-#include "helpers.h"
+#include <failsafe/fs.h>
+#include <failsafe/helpers.h>
 
 /* ------------------------------------------------------------------ */
 /*  HTTP response helpers                                              */

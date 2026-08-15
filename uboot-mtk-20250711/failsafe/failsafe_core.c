@@ -37,7 +37,7 @@
 #include <failsafe/fw_type.h>
 
 #include "../board/mediatek/common/boot_helper.h"
-#include "failsafe_internal.h"
+#include <failsafe/internal.h>
 
 /* ------------------------------------------------------------------ */
 /*  Core state (local to the main loop)                                */
