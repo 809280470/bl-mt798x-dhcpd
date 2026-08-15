@@ -221,10 +221,10 @@ config IPV6
 	  address and find it, it will force using IPv6 in the network stack.
 
 config MTK_TCP
-	bool
+	bool "Enable Mediatek TCP framework"
 	default n
 	help
-	  Enable mediatek tcp framework that allows some customized features.
+	  Enable Mediatek TCP framework that allows some customized features.
 
 config MTK_TCP_VERBOSE
 	bool "Enable verbose logging for MTK TCP stack"
@@ -236,11 +236,11 @@ config MTK_TCP_VERBOSE
 	  Set the variable to "1", "true", "yes", or "on" to enable logging.
 
 config MTK_HTTPD
-	bool
+	bool "Enable Mediatek HTTPD framework"
 	default n
 	depends on MTK_TCP
 	help
-	  Enable mediatek httpd framework that allows some customized features.
+	  Enable Mediatek HTTPD framework that allows some customized features.
 
 config MTK_TELNETD
 	bool "Minimal telnet server for MediaTek web failsafe"
