@@ -242,6 +242,27 @@ size_t json_escape(char *dst, size_t dst_sz, const char *src)
 }
 
 /* ------------------------------------------------------------------ */
+/*  Safe buffer append (JSON payload builders)                         */
+/* ------------------------------------------------------------------ */
+
+int buf_appendf(char *buf, int size, int len, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	if (len >= size)
+		return len;
+
+	va_start(ap, fmt);
+	n = vscnprintf(buf + len, size - len, fmt, ap);
+	va_end(ap);
+
+	if (n > 0)
+		return len + n;
+	return len;
+}
+
+/* ------------------------------------------------------------------ */
 /*  MMC presence check                                                 */
 /* ------------------------------------------------------------------ */
 

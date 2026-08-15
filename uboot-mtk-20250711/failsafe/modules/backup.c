@@ -200,10 +200,10 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 		return;
 	}
 
-	len += snprintf(buf + len, left - len, "{");
+	len = buf_appendf(buf, left, len, "{");
 
 	/* MMC info + partitions */
-	len += snprintf(buf + len, left - len, "\"mmc\":{");
+	len = buf_appendf(buf, left, len, "\"mmc\":{");
 #ifdef CONFIG_MTK_BOOTMENU_MMC
 	{
 		struct mmc *mmc;
@@ -223,15 +223,15 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			json_escape(esc_vendor, sizeof(esc_vendor), pretty_vendor);
 			json_escape(esc_product, sizeof(esc_product),
 				    bd->product ? bd->product : "");
-			len += snprintf(buf + len, left - len,
+			len = buf_appendf(buf, left, len,
 				"\"present\":true,\"vendor\":\"%s\",\"product\":\"%s\",\"blksz\":%lu,\"size\":%llu,",
 				esc_vendor, esc_product, (unsigned long)bd->blksz,
 				(unsigned long long)mmc->capacity_user);
 		} else {
-			len += snprintf(buf + len, left - len, "\"present\":false,");
+			len = buf_appendf(buf, left, len, "\"present\":false,");
 		}
 
-		len += snprintf(buf + len, left - len, "\"parts\":[");
+		len = buf_appendf(buf, left, len, "\"parts\":[");
 #ifdef CONFIG_PARTITIONS
 		if (present) {
 			struct disk_partition dpart;
@@ -250,7 +250,7 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 				}
 
 				json_escape(esc_name, sizeof(esc_name), dpart.name);
-				len += snprintf(buf + len, left - len,
+				len = buf_appendf(buf, left, len,
 					"%s{\"name\":\"%s\",\"size\":%llu}",
 					first ? "" : ",",
 					esc_name,
@@ -261,15 +261,15 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			}
 		}
 #endif
-		len += snprintf(buf + len, left - len, "]");
+		len = buf_appendf(buf, left, len, "]");
 	}
 #else
-	len += snprintf(buf + len, left - len, "\"present\":false,\"parts\":[]");
+	len = buf_appendf(buf, left, len, "\"present\":false,\"parts\":[]");
 #endif
-	len += snprintf(buf + len, left - len, "},");
+	len = buf_appendf(buf, left, len, "},");
 
 	/* MTD info + partitions */
-	len += snprintf(buf + len, left - len, "\"mtd\":{");
+	len = buf_appendf(buf, left, len, "\"mtd\":{");
 #ifdef CONFIG_MTD
 	{
 		struct mtd_info *mtd, *sel = NULL;
@@ -315,7 +315,7 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 		}
 
 		json_escape(esc_model, sizeof(esc_model), model ? model : "");
-		len += snprintf(buf + len, left - len,
+		len = buf_appendf(buf, left, len,
 			"\"present\":%s,\"model\":\"%s\",\"type\":%d,",
 			present ? "true" : "false",
 			esc_model, type);
@@ -354,18 +354,18 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			{
 				u64 ram_avail = gd ? gd->ram_size : 0;
 
-				len += snprintf(buf + len, left - len,
+				len = buf_appendf(buf, left, len,
 					"\"nand_raw_size\":%llu,\"nand_oob_size\":%u,\"nand_page_size\":%u,\"nand_type\":\"%s\",\"ram_available\":%llu,",
 					(unsigned long long)raw_sz, oob_sz, page_sz,
 					ntype, (unsigned long long)ram_avail);
 			}
 		}
 #else
-		len += snprintf(buf + len, left - len,
+		len = buf_appendf(buf, left, len,
 			"\"nand_raw_size\":0,\"nand_oob_size\":0,\"nand_page_size\":0,\"nand_type\":\"none\",\"ram_available\":0,");
 #endif
 
-		len += snprintf(buf + len, left - len, "\"parts\":[");
+		len = buf_appendf(buf, left, len, "\"parts\":[");
 		for (i = 0; i < 64 && len < left - 128; i++) {
 			char esc_name[128];
 
@@ -379,7 +379,7 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			}
 
 			json_escape(esc_name, sizeof(esc_name), mtd->name);
-			len += snprintf(buf + len, left - len,
+			len = buf_appendf(buf, left, len,
 				"%s{\"name\":\"%s\",\"size\":%llu,\"master\":%s}",
 				first ? "" : ",",
 				esc_name,
@@ -389,13 +389,13 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			first = false;
 			put_mtd_device(mtd);
 		}
-		len += snprintf(buf + len, left - len, "]");
+		len = buf_appendf(buf, left, len, "]");
 	}
 #else
-	len += snprintf(buf + len, left - len, "\"present\":false,\"parts\":[]");
+	len = buf_appendf(buf, left, len, "\"present\":false,\"parts\":[]");
 #endif
-	len += snprintf(buf + len, left - len, "}");
-	len += snprintf(buf + len, left - len, "}");
+	len = buf_appendf(buf, left, len, "}");
+	len = buf_appendf(buf, left, len, "}");
 
 	failsafe_http_reply_json_alloc(response, 200, buf, buf);
 }
