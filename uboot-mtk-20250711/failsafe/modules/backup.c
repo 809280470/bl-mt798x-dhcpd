@@ -216,12 +216,16 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 
 		if (present) {
 			char pretty_vendor[256];
+			char esc_vendor[256], esc_product[128];
 
 			failsafe_mmc_vendor_pretty(bd->vendor ? bd->vendor : "",
-						   pretty_vendor, sizeof(pretty_vendor));
+					   pretty_vendor, sizeof(pretty_vendor));
+			json_escape(esc_vendor, sizeof(esc_vendor), pretty_vendor);
+			json_escape(esc_product, sizeof(esc_product),
+				    bd->product ? bd->product : "");
 			len += snprintf(buf + len, left - len,
 				"\"present\":true,\"vendor\":\"%s\",\"product\":\"%s\",\"blksz\":%lu,\"size\":%llu,",
-				pretty_vendor, bd->product, (unsigned long)bd->blksz,
+				esc_vendor, esc_product, (unsigned long)bd->blksz,
 				(unsigned long long)mmc->capacity_user);
 		} else {
 			len += snprintf(buf + len, left - len, "\"present\":false,");
@@ -231,6 +235,7 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 #ifdef CONFIG_PARTITIONS
 		if (present) {
 			struct disk_partition dpart;
+			char esc_name[128];
 			u32 i = 1;
 			bool first = true;
 
@@ -244,10 +249,11 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 					continue;
 				}
 
+				json_escape(esc_name, sizeof(esc_name), dpart.name);
 				len += snprintf(buf + len, left - len,
 					"%s{\"name\":\"%s\",\"size\":%llu}",
 					first ? "" : ",",
-					dpart.name,
+					esc_name,
 					(unsigned long long)dpart.size * dpart.blksz);
 
 				first = false;
@@ -271,6 +277,7 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 		bool first = true;
 		const char *model = NULL;
 		char model_buf[128];
+		char esc_model[128];
 		int type = -1;
 		bool present = false;
 
@@ -307,10 +314,11 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 			put_mtd_device(sel);
 		}
 
+		json_escape(esc_model, sizeof(esc_model), model ? model : "");
 		len += snprintf(buf + len, left - len,
 			"\"present\":%s,\"model\":\"%s\",\"type\":%d,",
 			present ? "true" : "false",
-			model ? model : "", type);
+			esc_model, type);
 
 #ifdef CONFIG_WEBUI_FAILSAFE_NAND_RAW
 		/* NAND raw metadata — re-open master to read info */
@@ -359,6 +367,8 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 
 		len += snprintf(buf + len, left - len, "\"parts\":[");
 		for (i = 0; i < 64 && len < left - 128; i++) {
+			char esc_name[128];
+
 			mtd = get_mtd_device(NULL, i);
 			if (IS_ERR(mtd))
 				continue;
@@ -368,10 +378,11 @@ void backupinfo_handler(enum httpd_uri_handler_status status,
 				continue;
 			}
 
+			json_escape(esc_name, sizeof(esc_name), mtd->name);
 			len += snprintf(buf + len, left - len,
 				"%s{\"name\":\"%s\",\"size\":%llu,\"master\":%s}",
 				first ? "" : ",",
-				mtd->name,
+				esc_name,
 				(unsigned long long)mtd->size,
 				mtd->parent ? "false" : "true");
 
