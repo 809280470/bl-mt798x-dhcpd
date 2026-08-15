@@ -313,8 +313,10 @@ config MTK_NET_ABORT
 	    setenv disable_net_abort 1
 
 config NET_FORCE_IPADDR
-	bool "Use ipaddr and netmask with CONFIG_IPADDR and CONFIG_NETMASK"
+	bool "Force IP address and netmask from config/env"
 	default n
+	help
+	  Use ipaddr and netmask with values from config/env.
 
 endif   # if NET
 
